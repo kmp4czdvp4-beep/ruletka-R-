@@ -1,0 +1,1165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#161313">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Рулетка">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+<title>Рулетка речи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800;900&family=Rubik:wght@500;600;700&display=swap">
+<style>
+/* Layout: one 9:16 poster card (the Reels frame) on an ink page. Every screen is a stack of outlined, hard-shadowed panels and stickers sized in container units, so a recording looks the same on a phone and a monitor. Neo-brutalist retro comic, a single light look by choice. */
+:root{
+  --paper:#F2E8D0;
+  --ink:#161313;
+  --pink:#F39AC2;
+  --teal:#5BBFB2;
+  --orange:#F47C24;
+  --blue:#829FE6;
+  --yellow:#F8C83A;
+  --red:#E8412F;
+  --f-display:"Unbounded","Arial Black","Helvetica Neue",Arial,sans-serif;
+  --f-ui:"Rubik","Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box;background:var(--ink)}
+*,*::before,*::after{box-sizing:border-box}
+body{height:100%;margin:0;background:var(--ink);color:var(--ink);font-family:var(--f-ui);font-size:14px;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;touch-action:manipulation}
+html,body{overscroll-behavior:none}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+
+.c-paper{--c:var(--paper)} .c-pink{--c:var(--pink)} .c-teal{--c:var(--teal)} .c-orange{--c:var(--orange)}
+.c-blue{--c:var(--blue)} .c-yellow{--c:var(--yellow)} .c-red{--c:var(--red)}
+
+.wrap{height:100%;display:flex;align-items:center;justify-content:center}
+.stage{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;container-type:size;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;background:var(--paper)}
+.stage *{--bw:max(2px,.72cqw);--sh:max(3px,1.15cqw)}
+@media (min-aspect-ratio:3/4){
+  .wrap{padding-block:2.5vh}
+  .stage{border-radius:26px;border:3px solid var(--paper)}
+}
+
+/* общие детали */
+.panel{position:relative;background:var(--c,var(--paper));border:var(--bw) solid var(--ink);border-radius:4cqw;box-shadow:var(--sh) var(--sh) 0 var(--ink)}
+.tone::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background-image:radial-gradient(rgba(22,19,19,.2) 22%,transparent 26%);background-size:max(5px,1.7cqw) max(5px,1.7cqw);mix-blend-mode:multiply;opacity:.55}
+.tag{display:inline-flex;align-items:center;gap:1.4cqw;width:max-content;max-width:100%;padding:1.2cqw 3cqw;border:var(--bw) solid var(--ink);border-radius:99px;background:var(--c,var(--paper));font-family:var(--f-ui);font-weight:700;font-size:max(10px,2.7cqw);letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
+.r{display:inline-block;color:var(--orange);text-shadow:.05em .05em 0 var(--ink)}
+.w{display:inline-block}
+.r.trill{animation:trill .65s linear both}
+@keyframes trill{
+  0%{transform:none}
+  8%{transform:translateX(-.07em) rotate(-7deg) scale(1.12)}
+  16%{transform:translateX(.07em) rotate(7deg) scale(1.12)}
+  24%{transform:translateX(-.06em) rotate(-5deg) scale(1.08)}
+  32%{transform:translateX(.06em) rotate(5deg) scale(1.08)}
+  40%{transform:translateX(-.04em) rotate(-3deg)}
+  48%{transform:translateX(.04em) rotate(3deg)}
+  60%{transform:translateX(-.02em)}
+  100%{transform:none}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bob{0%,100%{transform:rotate(var(--rot,0deg)) translateY(0)}50%{transform:rotate(calc(var(--rot,0deg) + 4deg)) translateY(-.8cqw)}}
+@keyframes popIn{0%{opacity:0;transform:rotate(var(--rot,0deg)) scale(.3)}70%{opacity:1;transform:rotate(var(--rot,0deg)) scale(1.12)}100%{transform:rotate(var(--rot,0deg)) scale(1)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(4cqw)}to{opacity:1;transform:none}}
+.burst{position:absolute;display:grid;place-items:center;aspect-ratio:1;transform:rotate(var(--rot,0deg))}
+.burst svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.burst .bf{fill:var(--c);stroke:var(--ink);stroke-width:3;stroke-linejoin:round}
+.burst .bs{fill:var(--ink)}
+.burst>span{position:relative;font-family:var(--f-display);font-weight:900;text-align:center;line-height:.95;text-transform:uppercase}
+
+/* шапка */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:3cqw;margin:4.2cqw max(16px,5.5cqw) 0;padding-bottom:3cqw;border-bottom:var(--bw) solid var(--ink)}
+.brand{display:flex;align-items:center;gap:2.4cqw;padding:0;border:0;background:none;color:var(--ink);cursor:pointer;font-weight:700;font-size:max(11px,2.9cqw);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.logo{width:max(34px,9cqw);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;border:var(--bw) solid var(--ink);background:var(--paper);font-family:var(--f-display);font-weight:900;font-size:max(15px,4.6cqw);letter-spacing:0;transition:transform .12s,box-shadow .12s}
+.logo-back{display:none;width:56%;height:56%}
+.stage:not([data-screen="home"]) .logo{background:var(--yellow);box-shadow:.6cqw .6cqw 0 var(--ink)}
+.stage:not([data-screen="home"]) .brand:active .logo{transform:translate(.6cqw,.6cqw);box-shadow:none}
+.stage:not([data-screen="home"]) .logo-r{display:none}
+.stage:not([data-screen="home"]) .logo-back{display:block}
+.icons{display:flex;gap:2cqw}
+.ib{width:max(36px,9cqw);aspect-ratio:1;border-radius:50%;border:var(--bw) solid var(--ink);background:var(--paper);display:grid;place-items:center;cursor:pointer;box-shadow:.6cqw .6cqw 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.ib:active{transform:translate(.6cqw,.6cqw);box-shadow:0 0 0 var(--ink)}
+.ib svg{width:50%;height:50%}
+.ib.c-orange{background:var(--orange)}
+.ib[aria-pressed="false"]{background:var(--paper);opacity:.6}
+
+.main{position:relative;flex:1;min-height:0}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;gap:3.6cqw;padding:4.4cqw max(16px,5.5cqw) 6cqw;overflow-y:auto;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen.in{animation:slideUp .45s cubic-bezier(.2,.8,.2,1) both}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:2cqw;min-height:44px;padding:3.3cqw 4cqw;border:var(--bw) solid var(--ink);border-radius:99px;background:var(--c,var(--paper));box-shadow:var(--sh) var(--sh) 0 var(--ink);font-weight:700;font-size:max(13px,3.5cqw);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translate(-.3cqw,-.3cqw);box-shadow:calc(var(--sh) + .3cqw) calc(var(--sh) + .3cqw) 0 var(--ink)}
+.btn:active{transform:translate(var(--sh),var(--sh));box-shadow:0 0 0 var(--ink)}
+.btn svg{width:max(16px,4.4cqw);height:max(16px,4.4cqw)}
+.actions{display:grid;gap:3.2cqw;margin-top:auto}
+.actions.in{animation:slideUp .45s cubic-bezier(.2,.8,.2,1) both}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:3.2cqw}
+
+/* главная */
+.mega{margin:0;font-family:var(--f-display);font-weight:900;font-size:13.4cqw;line-height:.9;letter-spacing:-.03em;text-transform:uppercase}
+.mega .r{animation:trill .7s .3s linear both}
+.intro{display:grid;grid-template-columns:1fr 31cqw;gap:3cqw;align-items:center}
+.manifesto{display:grid;gap:2.2cqw;padding:3.4cqw 3.6cqw;border-radius:3.4cqw;box-shadow:none}
+.mf-lines{margin:0;display:grid;font-family:var(--f-display);font-weight:800;font-size:max(12px,3.6cqw);line-height:1.12;letter-spacing:-.01em}
+.mf-text{margin:0;padding-top:2cqw;border-top:var(--bw) solid var(--ink);font-size:max(11px,2.9cqw);line-height:1.35;font-weight:500}
+.badge{width:31cqw;aspect-ratio:1;transform:rotate(-8deg)}
+.badge svg{width:100%;height:100%;overflow:visible}
+.badge .ring-txt{font-family:var(--f-ui);font-weight:700;font-size:7.4px;letter-spacing:.4px;fill:var(--ink)}
+.badge .spin-slow{transform-origin:50px 50px;animation:spin 26s linear infinite}
+.pending{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3cqw;text-align:left;padding:3cqw 3.4cqw;cursor:pointer}
+.pending-k{display:block;font-weight:700;font-size:max(10px,2.5cqw);letter-spacing:.1em;text-transform:uppercase}
+.pending-t{display:block;margin-top:.8cqw;font-family:var(--f-display);font-weight:800;font-size:max(12px,3.5cqw);line-height:1.12}
+.pending-t .r{text-shadow:none;display:inline;color:var(--ink)}
+.go{width:max(36px,10cqw);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:var(--orange);border:var(--bw) solid var(--ink)}
+.go svg{width:50%;height:50%}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:3.4cqw;flex:1;min-height:52cqw;max-height:66cqw}
+.mode{display:flex;flex-direction:column;gap:1.4cqw;text-align:left;padding:3.4cqw;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.mode:hover{transform:translate(-.4cqw,-.4cqw);box-shadow:calc(var(--sh) + .4cqw) calc(var(--sh) + .4cqw) 0 var(--ink)}
+.mode:active{transform:translate(var(--sh),var(--sh));box-shadow:0 0 0 var(--ink)}
+.mode-art{position:relative;z-index:1;width:72%;height:auto;margin:auto 0 1cqw;filter:drop-shadow(.8cqw .8cqw 0 var(--ink))}
+.mode-name{position:relative;z-index:1;font-family:var(--f-display);font-weight:900;font-size:3.6cqw;letter-spacing:-.02em;line-height:1}
+.mode-desc{position:relative;z-index:1;font-size:max(11px,2.8cqw);line-height:1.3;font-weight:500}
+.mode-meta{position:relative;z-index:1;margin-top:1cqw;font-size:max(9px,2.3cqw);padding:.9cqw 2.2cqw}
+.mode .burst{top:-4.5cqw;right:-3.5cqw;width:18cqw;z-index:2;animation:bob 2.8s ease-in-out infinite}
+.mode .burst>span{font-size:2.5cqw}
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:3.4cqw}
+.chip-btn{display:flex;align-items:center;gap:2.4cqw;padding:2cqw 3cqw 2cqw 2cqw;border:var(--bw) solid var(--ink);border-radius:99px;background:var(--c);cursor:pointer;text-align:left}
+.chip-btn .ico{flex:none;width:max(28px,8cqw);aspect-ratio:1;border-radius:50%;border:var(--bw) solid var(--ink);background:var(--paper);display:grid;place-items:center}
+.chip-btn .ico svg{width:56%;height:56%}
+.chip-btn b{display:block;font-size:max(9px,2.3cqw);letter-spacing:.08em;text-transform:uppercase}
+.chip-btn i{display:block;font-style:normal;font-family:var(--f-display);font-weight:800;font-size:max(12px,3.4cqw);font-variant-numeric:tabular-nums}
+
+/* вытягивание */
+.draw-top{display:flex;justify-content:space-between;align-items:center;gap:2cqw}
+.dt-right{display:flex;align-items:center;gap:2cqw}
+.music{cursor:pointer;box-shadow:.6cqw .6cqw 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.music:active{transform:translate(.6cqw,.6cqw);box-shadow:none}
+.music.in{animation:popIn .45s cubic-bezier(.3,1.5,.5,1) both}
+.eq{display:inline-flex;align-items:flex-end;gap:2px;height:1.05em}
+.eq i{width:max(3px,.8cqw);height:35%;background:var(--ink);border-radius:1px}
+.music.playing .eq i{animation:eq .5s ease-in-out infinite alternate}
+.music.playing .eq i:nth-child(2){animation-delay:-.18s}
+.music.playing .eq i:nth-child(3){animation-delay:-.33s}
+@keyframes eq{from{height:20%}to{height:100%}}
+.slot{display:grid;align-items:start}
+.slot>*{grid-area:1/1;min-width:0}
+.reel-panel{padding:3.2cqw;border-radius:4cqw}
+.reel{position:relative;z-index:1;height:36cqw;overflow:hidden;background:var(--paper);border:var(--bw) solid var(--ink);border-radius:2.6cqw}
+.reel-band{position:absolute;left:0;right:0;top:12cqw;height:12cqw;background:var(--pink);border-block:var(--bw) solid var(--ink)}
+.reel-strip{position:relative;padding-top:12cqw;will-change:transform}
+.reel-item{height:12cqw;line-height:12cqw;padding-inline:4cqw;font-family:var(--f-display);font-weight:800;font-size:4.4cqw;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.35}
+.reel-item .r{display:inline;text-shadow:none}
+.reel-item.on{opacity:1}
+.reel-panel.landed .reel-item.on{animation:thump .35s ease-out both}
+@keyframes thump{40%{transform:scale(1.05)}}
+.reel-panel.out{animation:fadeOut .3s ease forwards}
+@keyframes fadeOut{to{opacity:0;transform:scale(.96)}}
+.reel-arrow{position:absolute;z-index:2;top:50%;width:0;height:0;border-block:2.6cqw solid transparent;transform:translateY(-50%)}
+.reel-arrow.l{left:.6cqw;border-left:3cqw solid var(--ink)}
+.reel-arrow.r{right:.6cqw;border-right:3cqw solid var(--ink)}
+.topic{display:grid;gap:2.4cqw;padding:6cqw 4.4cqw 4.6cqw;border-radius:4.4cqw}
+.topic .cat{position:absolute;top:-3.6cqw;left:4cqw;transform:rotate(-3deg);box-shadow:.6cqw .6cqw 0 var(--ink)}
+.topic-text{margin:0;font-family:var(--f-display);font-weight:800;font-size:6.2cqw;line-height:1.1;letter-spacing:-.02em;text-wrap:balance}
+.reveal .w{animation:wordIn .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 55ms)}
+@keyframes wordIn{from{opacity:0;transform:translateY(.4em) rotate(-4deg)}to{opacity:1;transform:none}}
+.rburst{right:-4cqw;bottom:-8cqw;width:19cqw;--rot:10deg;z-index:3}
+.topic .topic-text{padding-right:10cqw}
+.rburst.pop{animation:popIn .5s cubic-bezier(.3,1.5,.5,1) both}
+.rburst>span{font-size:3.7cqw}
+.rburst b{font-weight:900}
+.hints{display:grid;gap:2.6cqw;padding:5.4cqw 4cqw 4cqw;margin-top:3cqw}
+.hints .tag{position:absolute;top:-3.4cqw;left:4cqw;transform:rotate(2deg);box-shadow:.6cqw .6cqw 0 var(--ink)}
+.hints ul{position:relative;z-index:1;margin:0;padding:0;list-style:none;display:grid;gap:2.2cqw}
+.hints li{display:grid;grid-template-columns:auto 1fr;gap:2.4cqw;font-weight:500;font-size:max(12px,3.4cqw);line-height:1.32}
+.hints li svg{width:max(12px,3.4cqw);height:max(12px,3.4cqw);margin-top:.15em}
+.hints .note{position:relative;z-index:1;margin:0;font-weight:500;font-size:max(12px,3.4cqw)}
+.extra.in{animation:slideUp .45s cubic-bezier(.2,.8,.2,1) both}
+.wait{display:flex;align-items:center;gap:3cqw;margin-top:3cqw;font-weight:700;font-size:max(11px,3cqw);letter-spacing:.06em;text-transform:uppercase}
+.wait-bar{flex:1;height:2.6cqw;border:var(--bw) solid var(--ink);border-radius:99px;overflow:hidden;background:var(--paper)}
+.wait-bar i{display:block;height:100%;width:0;background:var(--blue);border-right:var(--bw) solid var(--ink);animation:fill var(--d,1.4s) linear forwards}
+@keyframes fill{to{width:100%}}
+
+/* таймер */
+.run-card{padding:5.4cqw 4cqw 3.6cqw}
+.run-card .tag{position:absolute;top:-3.4cqw;left:4cqw;transform:rotate(-2deg);box-shadow:.6cqw .6cqw 0 var(--ink)}
+.run-topic{margin:0;font-family:var(--f-display);font-weight:800;font-size:4.8cqw;line-height:1.1;letter-spacing:-.02em;text-wrap:balance}
+.dial{position:relative;width:min(80cqw,46cqh);aspect-ratio:1;max-width:100%;margin:auto;flex:none}
+.rays{position:absolute;inset:0;border-radius:50%;border:var(--bw) solid var(--ink);background:repeating-conic-gradient(var(--yellow) 0 9deg,var(--paper) 9deg 18deg);box-shadow:var(--sh) var(--sh) 0 var(--ink);animation:spin 50s linear infinite}
+.stage[data-state="speak"] .rays{animation-duration:14s}
+.stage[data-state="paused"] .rays{animation-play-state:paused}
+.run.think .rays{background:repeating-conic-gradient(var(--blue) 0 9deg,var(--paper) 9deg 18deg)}
+.run.warn .rays{background:repeating-conic-gradient(var(--pink) 0 9deg,var(--paper) 9deg 18deg);animation-duration:5s}
+.ring{position:absolute;inset:11%;width:78%;height:78%;overflow:visible}
+.ring .face{fill:var(--paper);stroke:var(--ink);stroke-width:4}
+.ring .tr-ink{fill:none;stroke:var(--ink);stroke-width:24}
+.ring .tr{fill:none;stroke:var(--paper);stroke-width:17}
+.ring .prog{fill:none;stroke:var(--orange);stroke-width:17;transition:stroke .3s}
+.ring .dot{fill:var(--ink)}
+.run.think .prog{stroke:var(--blue)}
+.run.warn .prog{stroke:var(--red)}
+.dial-c{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:1.6cqw;text-align:center}
+.phase{box-shadow:.6cqw .6cqw 0 var(--ink)}
+.digits{font-family:var(--f-display);font-weight:900;font-size:12.5cqw;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.run.warn .digits{color:var(--red);animation:beat 1s ease-in-out infinite}
+.stage[data-state="paused"] .digits{opacity:.4}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.08)}}
+.bubble{position:absolute;top:-3cqw;right:-3cqw;width:30cqw;aspect-ratio:100/84;--rot:8deg;transform:rotate(var(--rot));display:grid;place-items:center;padding-bottom:22%;z-index:2}
+.bubble svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.bubble .bp{fill:var(--c);stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round}
+.bubble .bs{fill:var(--ink)}
+.bubble span{position:relative;font-family:var(--f-display);font-weight:900;font-size:4cqw;letter-spacing:-.03em;white-space:nowrap}
+.stage[data-state="speak"] .bubble{animation:bob .7s ease-in-out infinite}
+.stage[data-state="think"] .bubble{animation:bob 2.4s ease-in-out infinite}
+
+/* финал */
+.done-burst{position:relative;width:76cqw;margin:2cqw auto 0;--rot:-6deg}
+.done-burst>span{font-size:11cqw;letter-spacing:-.04em}
+.done-burst .r{color:var(--yellow)}
+.done-burst.pop{animation:popIn .6s cubic-bezier(.3,1.5,.5,1) both}
+.done-card{padding:5.4cqw 4cqw 3.6cqw;margin-top:1cqw}
+.done-card .tag{position:absolute;top:-3.4cqw;left:4cqw;transform:rotate(2deg);box-shadow:.6cqw .6cqw 0 var(--ink)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:3.4cqw}
+.stat{display:grid;gap:1cqw;padding:3cqw 3.6cqw;border-radius:3.4cqw}
+.stat b{position:relative;z-index:1;font-size:max(9px,2.4cqw);letter-spacing:.1em;text-transform:uppercase}
+.stat i{position:relative;z-index:1;font-style:normal;font-family:var(--f-display);font-weight:900;font-size:7cqw;line-height:1;font-variant-numeric:tabular-nums}
+
+/* отсчёт */
+.cd{position:absolute;inset:0;z-index:5;display:grid;place-items:center;pointer-events:none;background:color-mix(in srgb,var(--paper) 72%,transparent)}
+.cd .burst{position:relative;width:78cqw}
+.cd .burst.go{animation:popIn .45s cubic-bezier(.3,1.5,.5,1) both}
+.cd .burst>span{font-size:34cqw;letter-spacing:-.04em}
+.cd .burst.word>span{font-size:12cqw}
+.cd .burst.word .r{color:var(--yellow)}
+
+/* настройки */
+.sheet{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:flex-end;background:color-mix(in srgb,var(--ink) 45%,transparent)}
+.sheet-in{max-height:90%;overflow-y:auto;display:grid;gap:4.6cqw;padding:5cqw max(16px,5.5cqw) 7cqw;background:var(--paper);border-top:var(--bw) solid var(--ink);border-radius:6cqw 6cqw 0 0;animation:sheetUp .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet-head{display:flex;justify-content:space-between;align-items:center}
+.sheet-head h2{margin:0;font-family:var(--f-display);font-weight:900;font-size:max(20px,6.4cqw);letter-spacing:-.02em;text-transform:uppercase}
+.field{display:grid;gap:2.2cqw}
+.field-l{font-weight:700;font-size:max(10px,2.7cqw);letter-spacing:.1em;text-transform:uppercase}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2cqw}
+.seg button{min-height:40px;padding:2.2cqw 1cqw;border:var(--bw) solid var(--ink);border-radius:99px;background:var(--paper);cursor:pointer;font-family:var(--f-display);font-weight:700;font-size:max(11px,2.9cqw);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--orange);box-shadow:.6cqw .6cqw 0 var(--ink)}
+textarea{width:100%;min-height:24cqw;resize:vertical;padding:3cqw 3.4cqw;border:var(--bw) solid var(--ink);border-radius:3cqw;background:#FFFDF6;color:var(--ink);font:inherit;font-size:max(14px,3.5cqw);line-height:1.45}
+textarea::placeholder{color:rgba(22,19,19,.5)}
+.keys{margin:0;font-size:max(11px,2.9cqw);line-height:1.8}
+.keys kbd{font-family:var(--f-display);font-weight:700;font-size:.85em;padding:.1em .5em;border:2px solid var(--ink);border-radius:6px;background:var(--yellow)}
+.note{margin:0;font-size:max(11px,2.9cqw);line-height:1.4}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage" data-state="home">
+    <header class="bar">
+      <button class="brand" id="homeBtn" title="На главную"><span class="logo" aria-hidden="true"><span class="logo-r">Р</span><svg class="logo-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span>Рулетка речи</button>
+      <div class="icons">
+        <button class="ib" id="soundBtn" aria-pressed="true" aria-label="Звук">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><g id="sOn"><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></g><g id="sOff" hidden><path d="m16 9 5 6M21 9l-5 6"/></g></svg>
+        </button>
+        <button class="ib" id="fsBtn" aria-label="Во весь экран">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+        </button>
+        <button class="ib c-orange" id="setBtn" aria-label="Настройки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- ГЛАВНАЯ -->
+      <section class="screen" id="home">
+        <h1 class="mega" id="homeTitle">Рулетка речи</h1>
+        <div class="intro">
+          <div class="panel manifesto">
+            <p class="mf-lines"><span>ГРОМКО.</span><span>ГОРДО.</span><span>РАСКАТИСТО.</span></p>
+            <p class="mf-text">Тянешь тему и говоришь вслух. Каждая тема набита звуком Р.</p>
+          </div>
+          <div class="badge" aria-hidden="true">
+            <svg viewBox="0 0 100 100">
+              <defs><path id="bp" d="M50 50 m-34 0 a34 34 0 1 1 68 0 a34 34 0 1 1 -68 0"/></defs>
+              <circle cx="52" cy="52" r="47" style="fill:var(--ink)"/>
+              <circle cx="50" cy="50" r="47" style="fill:var(--teal);stroke:var(--ink);stroke-width:2.6"/>
+              <g class="spin-slow"><text class="ring-txt"><textPath href="#bp" textLength="208" lengthAdjust="spacing">ТРЕНАЖЁР ЗВУКА Р ✦ ГОВОРИ ГРОМКО ✦</textPath></text></g>
+              <circle cx="50" cy="50" r="24" style="fill:var(--yellow);stroke:var(--ink);stroke-width:2.6"/>
+              <ellipse cx="42.5" cy="46" rx="2.6" ry="4" style="fill:var(--ink)"/>
+              <ellipse cx="57.5" cy="46" rx="2.6" ry="4" style="fill:var(--ink)"/>
+              <path d="M39.5 55 Q50 65 60.5 55" style="fill:none;stroke:var(--ink);stroke-width:2.8;stroke-linecap:round"/>
+            </svg>
+          </div>
+        </div>
+        <button class="pending panel c-teal tone" id="pending" hidden>
+          <span><span class="pending-k">Тема в работе</span><span class="pending-t" id="pendingT"></span></span>
+          <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </button>
+        <div class="modes">
+          <button class="mode panel c-pink tone" data-mode="prep">
+            <span class="burst c-blue" data-burst="12,50,36" style="--rot:12deg"><span>Изучи!</span></span>
+            <svg class="mode-art" viewBox="0 0 120 90" aria-hidden="true">
+              <g style="stroke:var(--ink);stroke-width:4;stroke-linejoin:round;stroke-linecap:round">
+                <path d="M60 22C48 12 26 10 10 16v62c16-6 38-4 50 6z" style="fill:var(--paper)"/>
+                <path d="M60 22c12-10 34-12 50-6v62c-16-6-38-4-50 6z" style="fill:var(--paper)"/>
+                <path d="M20 31c11-3 23-2 32 3M20 43c11-3 23-2 32 3M20 55c11-3 23-2 32 3M68 34c9-5 21-6 32-3M68 46c9-5 21-6 32-3" style="fill:none;stroke-width:3"/>
+                <path d="M86 13v26l6-6 6 6V12" style="fill:var(--red)"/>
+              </g>
+            </svg>
+            <span class="mode-name">ПОДГОТОВКА</span>
+            <span class="mode-desc">Тема на изучение, потом рассказ под таймер</span>
+            <span class="tag mode-meta" id="meta-prep"></span>
+          </button>
+          <button class="mode panel c-orange tone" data-mode="imp">
+            <span class="burst c-yellow" data-burst="12,50,36" style="--rot:-10deg"><span>С ходу!</span></span>
+            <svg class="mode-art" viewBox="0 0 120 90" aria-hidden="true">
+              <g style="stroke:var(--ink);stroke-width:4;stroke-linejoin:round;stroke-linecap:round">
+                <path d="M28 20q-8 10 0 20M18 13q-14 17 0 34M92 20q8 10 0 20M102 13q14 17 0 34" style="fill:none"/>
+                <rect x="40" y="5" width="40" height="50" rx="20" style="fill:var(--yellow)"/>
+                <path d="M44 22h32M41 32h38M44 42h32" style="fill:none;stroke-width:3"/>
+                <path d="M51 56l4 28h10l4-28z" style="fill:var(--paper)"/>
+                <rect x="35" y="50" width="50" height="9" rx="4.5" style="fill:var(--blue)"/>
+              </g>
+            </svg>
+            <span class="mode-name">ЭКСПРОМТ</span>
+            <span class="mode-desc">Тема, пара секунд на мысль, и сразу говоришь</span>
+            <span class="tag mode-meta" id="meta-imp"></span>
+          </button>
+        </div>
+        <div class="settings-row">
+          <button class="chip-btn c-blue" id="sumSpeak"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4"/></svg></span><span><b>Рассказ</b><i id="sumSpeakV">1:00</i></span></button>
+          <button class="chip-btn c-yellow" id="sumThink"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2c1 6 4 9 10 10-6 1-9 4-10 10-1-6-4-9-10-10 6-1 9-4 10-10z" style="fill:var(--ink)"/></svg></span><span><b>На мысль</b><i id="sumThinkV">10 с</i></span></button>
+        </div>
+      </section>
+
+      <!-- ВЫТЯГИВАНИЕ -->
+      <section class="screen" id="draw" hidden>
+        <div class="draw-top"><span class="tag c-pink" id="drawMode">Экспромт</span><div class="dt-right"><button class="tag c-yellow music" id="musicBtn" hidden title="Мелодия темы"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span id="moodT"></span></button><span class="tag" id="deckLeft"></span></div></div>
+        <div class="slot">
+          <div class="reel-panel panel c-yellow tone" id="reelPanel">
+            <div class="reel"><div class="reel-band"></div><div class="reel-strip" id="strip"></div></div>
+            <span class="reel-arrow l"></span><span class="reel-arrow r"></span>
+          </div>
+          <div class="topic panel" id="topic" hidden>
+            <span class="tag cat" id="cat"></span>
+            <h2 class="topic-text" id="topicText"></h2>
+            <div class="burst rburst c-pink" id="rburst" data-burst="14,50,37" hidden><span>Р×<b id="rnum">0</b></span></div>
+          </div>
+        </div>
+        <div class="extra" id="extra"></div>
+        <div class="actions" id="drawActions" hidden>
+          <button class="btn c-orange" id="tellNow">Рассказать сейчас</button>
+          <div class="row"><button class="btn c-blue" id="reroll">Другая тема</button><button class="btn" id="later">Изучу позже</button></div>
+        </div>
+      </section>
+
+      <!-- ТАЙМЕР -->
+      <section class="screen run" id="run" hidden>
+        <div class="panel run-card"><span class="tag" id="runCat"></span><h2 class="run-topic" id="runTopic"></h2></div>
+        <div class="dial" id="dial">
+          <div class="rays"></div>
+          <svg class="ring" viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="face" cx="110" cy="110" r="106"/>
+            <circle class="tr-ink" cx="110" cy="110" r="86"/>
+            <circle class="tr" cx="110" cy="110" r="86"/>
+            <circle class="prog" id="prog" cx="110" cy="110" r="86" transform="rotate(-90 110 110)"/>
+            <g id="dots"></g>
+          </svg>
+          <div class="dial-c" role="timer"><span class="tag phase" id="phase">Говори</span><span class="digits" id="digits">1:00</span></div>
+          <div class="bubble c-pink" id="bubble" aria-hidden="true">
+            <svg viewBox="0 0 100 84"><path class="bs" transform="translate(3 3)" d="M20 6h62q12 0 12 12v32q0 12-12 12H42L22 79l5-17h-7Q8 62 8 50V18Q8 6 20 6z"/><path class="bp" d="M20 6h62q12 0 12 12v32q0 12-12 12H42L22 79l5-17h-7Q8 62 8 50V18Q8 6 20 6z"/></svg>
+            <span id="bubbleT">Р-р-р!</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn c-orange" id="skipThink">Готов, говорю</button>
+          <div class="row"><button class="btn c-blue" id="pauseBtn">Пауза</button><button class="btn" id="stopBtn">Закончить</button></div>
+        </div>
+      </section>
+
+      <!-- ФИНАЛ -->
+      <section class="screen" id="done" hidden>
+        <div class="burst done-burst c-pink" id="doneBurst" data-burst="16,50,39"><span id="doneBig">Время!</span></div>
+        <div class="panel done-card"><span class="tag c-teal">Тема</span><h2 class="run-topic" id="doneTopic"></h2></div>
+        <div class="stats">
+          <div class="stat panel c-blue tone"><b>Проговорил</b><i id="stSpoke">1:00</i></div>
+          <div class="stat panel c-yellow tone"><b>Р в теме</b><i id="stR">0</i></div>
+        </div>
+        <div class="actions">
+          <button class="btn c-orange" id="dNew">Новая тема</button>
+          <div class="row"><button class="btn c-blue" id="dAgain">Ещё раз эту</button><button class="btn" id="dHome">В начало</button></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="cd" id="cd" hidden aria-live="assertive"><div class="burst" id="cdBurst" data-burst="14,50,38"><span id="cdT"></span></div></div>
+
+    <div class="sheet" id="sheet" hidden>
+      <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+        <div class="sheet-head"><h2 id="sheetTitle">Настройки</h2>
+          <button class="ib" id="sheetClose" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="field"><span class="field-l">Время рассказа</span>
+          <div class="seg" data-key="speak"><button data-v="45">0:45</button><button data-v="60">1:00</button><button data-v="90">1:30</button><button data-v="120">2:00</button></div></div>
+        <div class="field"><span class="field-l">На мысль в экспромте</span>
+          <div class="seg" data-key="think"><button data-v="5">5 с</button><button data-v="10">10 с</button><button data-v="15">15 с</button><button data-v="30">30 с</button></div></div>
+        <div class="field"><label class="field-l" for="cPrep">Свои темы для подготовки</label>
+          <textarea id="cPrep" placeholder="По одной теме на строку"></textarea></div>
+        <div class="field"><label class="field-l" for="cImp">Свои темы для экспромта</label>
+          <textarea id="cImp" placeholder="По одной теме на строку"></textarea></div>
+        <button class="btn c-yellow" id="reshuffle">Перемешать колоды заново</button>
+        <div class="field"><span class="field-l">Клавиши при записи с компьютера</span>
+          <p class="keys"><kbd>1</kbd> подготовка · <kbd>2</kbd> экспромт · <kbd>Enter</kbd> новая тема · <kbd>Пробел</kbd> старт и пауза · <kbd>Esc</kbd> в начало</p></div>
+        <p class="note">Настройки, свои темы и выпавшие темы хранятся только в этом браузере.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- темы ---------- */
+const PREP = [
+ {c:"Мифы",t:"Прометей: кража огня и вечная расплата",s:"greek tragic",h:["Гесиод, «Теогония» и «Труды и дни»","Эсхил, «Прометей прикованный»","Почему орёл каждый день клюёт печень"]},
+ {c:"Мифы",t:"Орфей спускается в царство мёртвых за Эвридикой",s:"greek tragic",h:["Овидий, «Метаморфозы», книга X","Почему нельзя оборачиваться","Сравни с женой Лота из Бытия"]},
+ {c:"Мифы",t:"Персей и горгона Медуза",s:"greek heroic",h:["Дары богов: щит, крылатые сандалии, шлем-невидимка","Почему смотреть можно только в отражение","Что Овидий рассказывает о Медузе до проклятия"]},
+ {c:"Мифы",t:"Тесей и Минотавр в критском лабиринте",s:"greek epic",h:["Нить Ариадны","Почему Тесей оставил Ариадну на Наксосе","Чёрный парус и смерть царя Эгея"]},
+ {c:"Мифы",t:"Рагнарёк: гибель богов у скандинавов",s:"norse epic",h:["«Прорицание вёльвы» из Старшей Эдды","Кто с кем сражается в последней битве","Какой мир рождается после"]},
+ {c:"Мифы",t:"Гильгамеш ищет бессмертие",s:"east mystic",h:["Эпос о Гильгамеше, таблицы X и XI","Утнапиштим и рассказ о потопе","Змея крадёт траву вечной молодости"]},
+ {c:"Мифы",t:"Перун и Велес: громовержец против змея",s:"slavic epic",h:["«Основной миф» в реконструкции Иванова и Топорова","Почему это реконструкция, а не записанная легенда","Следы сюжета в сказках и заговорах"]},
+ {c:"Мифы",t:"Осирис, Исида и коварный Сет",s:"east dark",h:["Плутарх, «Об Исиде и Осирисе»","Как Исида собирает тело мужа","Гор мстит за отца"]},
+ {c:"Мифы",t:"Икар: крылья, воск и гордыня",s:"greek tragic",h:["Овидий, «Метаморфозы», книга VIII","Дедал как первый инженер в мифах","Почему отец велел лететь посередине"]},
+ {c:"Мифы",t:"Нарцисс и нимфа Эхо",s:"greek mystic",h:["Овидий, «Метаморфозы», книга III","Откуда взялось слово «нарциссизм»","Почему Эхо может только повторять"]},
+ {c:"Мифы",t:"Сизиф и работа без конца",s:"greek dark",h:["За что боги наказали Сизифа","Альбер Камю, «Миф о Сизифе»","Почему Камю считает Сизифа счастливым"]},
+ {c:"Мифы",t:"Троянский конь и пророчество Кассандры",s:"greek epic",h:["Вергилий, «Энеида», книга II","Жрец Лаокоон и змеи","Почему Кассандре никто не верил"]},
+ {c:"Мифы",t:"Одиссей и сирены",s:"greek mystic",h:["«Одиссея», песнь XII","Воск в ушах гребцов и мачта","Что сирены обещали Одиссею"]},
+ {c:"Мифы",t:"Пандора и сосуд с бедами",s:"greek dark",h:["Гесиод, «Труды и дни»","Почему «ящик» на самом деле был кувшином-пифосом","Что осталось на дне"]},
+ {c:"Мифы",t:"Иггдрасиль — мировое древо",s:"norse mystic",h:["Девять миров на ветвях и корнях","Норны у источника Урд","Один девять ночей висел на древе ради рун"]},
+ {c:"Мифы",t:"Баба-яга — стражница границы миров",s:"slavic dark",h:["Пропп, «Исторические корни волшебной сказки»","Зачем избушке курьи ножки","Почему она чует «русский дух»"]},
+ {c:"Мифы",t:"Кощей Бессмертный: где спрятана смерть",s:"slavic dark",h:["Игла в яйце, яйцо в утке","Пропп о тридесятом царстве","Кощей как образ мира мёртвых"]},
+ {c:"Мифы",t:"Локи — трикстер скандинавских богов",s:"norse playful",h:["Младшая Эдда Снорри Стурлусона","Как Локи то помогает богам, то вредит","Наказание Локи и змеиный яд"]},
+ {c:"Мифы",t:"Геракл и двенадцать подвигов",s:"greek heroic",h:["Зачем Геракл служил царю Эврисфею","Какой подвиг самый странный","Смерть Геракла и отравленный хитон Несса"]},
+ {c:"Тысячеликий герой",t:"Зов к странствию и отказ героя",s:"hero mystic",h:["Кэмпбелл, глава про отказ от зова","Иона бежит от поручения Бога","Когда ты сам отказывался от зова"]},
+ {c:"Тысячеликий герой",t:"Встреча с наставником",s:"hero light",h:["Кэмпбелл о сверхъестественной помощи","Афина в облике старца Ментора","Откуда взялось слово «ментор»"]},
+ {c:"Тысячеликий герой",t:"Первый порог и его стражи",s:"hero epic",h:["Кэмпбелл о преодолении первого порога","Стражи границы в сказках","Порог в обычной жизни"]},
+ {c:"Тысячеликий герой",t:"Во чреве кита: смерть и перерождение",s:"hero dark",h:["Кэмпбелл, глава «Во чреве кита»","Иона в чреве рыбы","Красная Шапочка выходит из волка"]},
+ {c:"Тысячеликий герой",t:"Примирение с отцом",s:"hero tragic",h:["Кэмпбелл о примирении с отцом","Телемах ищет Одиссея","Почему отец в мифе часто страшен"]},
+ {c:"Тысячеликий герой",t:"Возвращение героя домой",s:"hero heroic",h:["Кэмпбелл об отказе от возвращения","Будда сомневается, учить ли людей","Владыка двух миров"]},
+ {c:"Тысячеликий герой",t:"Мономиф: одна история на все культуры",s:"hero mystic",h:["Кэмпбелл взял это слово у Джойса","Сколько этапов у пути героя","Главная критика теории Кэмпбелла"]},
+ {c:"Тысячеликий герой",t:"Путь героини по Морин Мёрдок",s:"hero heroic",h:["Морин Мёрдок, «The Heroine's Journey», 1990","Чем он отличается от пути героя","Что Мёрдок услышала от самого Кэмпбелла"]},
+ {c:"Библия",t:"Каин и Авель: первое братоубийство",s:"bible tragic",h:["Бытие, глава 4","Почему дар Авеля приняли, а дар Каина нет","Что такое каинова печать"]},
+ {c:"Библия",t:"Вавилонская башня и разделение языков",s:"bible epic",h:["Бытие 11:1–9","Зиккурат Этеменанки в Вавилоне","Зачем людям понадобилась башня до неба"]},
+ {c:"Библия",t:"Пророк Иона в чреве кита",s:"bible dark",h:["Книга пророка Ионы","Почему Иона бежал в Фарсис","Ниневия и раскаяние города"]},
+ {c:"Библия",t:"Ноев ковчег и Всемирный потоп",s:"bible epic",h:["Бытие, главы 6–9","Сравни с потопом в эпосе о Гильгамеше","Радуга как знак завета"]},
+ {c:"Библия",t:"Давид против Голиафа",s:"bible heroic",h:["Первая книга Царств, глава 17","Почему праща — грозное оружие","Как история стала поговоркой"]},
+ {c:"Библия",t:"Притча о блудном сыне",s:"bible light",h:["Евангелие от Луки 15:11–32","Обида старшего брата","Картина Рембрандта в Эрмитаже"]},
+ {c:"Библия",t:"Иов: зачем страдает праведник",s:"bible tragic",h:["Книга Иова","Спор Бога и сатаны в начале книги","Ответ Бога из бури"]},
+ {c:"Библия",t:"Исход: сорок лет в пустыне",s:"bible epic",h:["Книга Исход, главы 13–17","Книга Чисел, глава 14: за что сорок лет","Манна небесная"]},
+ {c:"Библия",t:"Иаков борется с ангелом",s:"bible mystic",h:["Бытие, глава 32","Новое имя — Израиль","Почему Иаков хромал после борьбы"]},
+ {c:"Библия",t:"Суд царя Соломона",s:"bible light",h:["Третья книга Царств, глава 3","Две матери и один ребёнок","В чём мудрость решения"]},
+ {c:"Библия",t:"Жена Лота и запрет оборачиваться",s:"bible dark",h:["Бытие, глава 19","Содом и Гоморра","Почему именно соляной столп"]},
+ {c:"Библия",t:"Сила Самсона и предательство Далилы",s:"bible tragic",h:["Книга Судей, главы 13–16","Обет назорея","Почему Самсон выдал свою тайну"]},
+ {c:"Библия",t:"Адам и Ева: запретный плод и изгнание из рая",s:"bible mystic",h:["Бытие, главы 2–3","Почему в тексте нет никакого яблока","Что значит «познание добра и зла»"]},
+ {c:"Библия",t:"Авраам и жертвоприношение Исаака",s:"bible tragic",h:["Бытие, глава 22","Почему Бог остановил руку Авраама","Кьеркегор, «Страх и трепет»"]},
+ {c:"Библия",t:"Иосиф и братья: от рва до трона Египта",s:"bible light",h:["Бытие, главы 37–50","Сны фараона о тучных и тощих коровах","Почему Иосиф простил братьев"]},
+ {c:"Библия",t:"Десять казней египетских и упрямство фараона",s:"bible dark",h:["Исход, главы 7–12","Что значит «ожесточил сердце фараона»","Пасха и кровь на дверях"]},
+ {c:"Библия",t:"Переход через Красное море",s:"bible epic",h:["Исход, глава 14","Огненный столп и облако","Спор о «Тростниковом море» в еврейском тексте"]},
+ {c:"Библия",t:"Золотой телец у горы Синай",s:"bible dark",h:["Исход, глава 32","Почему Моисей разбил скрижали","Какую роль сыграл Аарон"]},
+ {c:"Библия",t:"Гедеон и триста воинов",s:"bible heroic",h:["Книга Судей, главы 6–7","Испытание с руном","Как воинов отбирали по тому, как они пьют воду"]},
+ {c:"Библия",t:"Руфь: верность чужестранки",s:"bible light",h:["Книга Руфи","«Куда ты пойдёшь, туда и я пойду»","Руфь — прабабка царя Давида"]},
+ {c:"Библия",t:"Илия против пророков Ваала на горе Кармил",s:"bible epic",h:["Третья книга Царств, глава 18","Огонь с неба на жертвенник","Тихое веяние вместо бури, глава 19"]},
+ {c:"Библия",t:"Даниил во рву со львами",s:"bible heroic",h:["Книга пророка Даниила, глава 6","Почему царь Дарий не смог отменить указ","Надпись на стене на пиру Валтасара, глава 5"]},
+ {c:"Библия",t:"Три отрока в огненной печи",s:"bible heroic",h:["Книга Даниила, глава 3","Золотой истукан Навуходоносора","Кто был четвёртым в огне"]},
+ {c:"Библия",t:"Есфирь: царица, которая спасла свой народ",s:"bible heroic",h:["Книга Есфири","Аман и указ об истреблении","Праздник Пурим"]},
+ {c:"Библия",t:"Искушение Христа в пустыне",s:"bible mystic",h:["Евангелие от Матфея 4:1–11","Три искушения: хлеб, чудо, власть","Достоевский, «Легенда о Великом инквизиторе»"]},
+ {c:"Библия",t:"Притча о добром самарянине",s:"bible light",h:["Евангелие от Луки 10:25–37","Почему героем стал именно самарянин","Кто мой ближний"]},
+ {c:"Библия",t:"Предательство Иуды",s:"bible dark",h:["Тридцать сребреников","Поцелуй в Гефсиманском саду","Иуда в апокрифах: другой взгляд"]},
+ {c:"Библия",t:"Апокалипсис: четыре всадника",s:"bible epic",h:["Откровение Иоанна, глава 6","Что символизирует каждый всадник","Откуда число 666, глава 13"]},
+ {c:"Библия",t:"Дорога в Дамаск: из Савла в Павла",s:"bible mystic",h:["Деяния апостолов, глава 9","Ослепление и прозрение","Откуда выражение «из Савла в Павла»"]},
+ {c:"Библия",t:"Воскрешение Лазаря",s:"bible light",h:["Евангелие от Иоанна, глава 11","«Иисус прослезился» — один из самых коротких стихов","Эта история в «Преступлении и наказании»"]},
+ {c:"Ацтеки",t:"Кецалькоатль — пернатый змей",s:"aztec mystic",h:["Бог ветра, знаний и жрецов","Изгнание Кецалькоатля и обещание вернуться","Кортес как вернувшийся бог: правда или поздняя легенда"]},
+ {c:"Ацтеки",t:"Пять Солнц: ацтекский миф о конце мира",s:"aztec epic",h:["Четыре прежних мира и как они погибли","Мы живём в эпоху Пятого Солнца","Почему солнце нужно было «кормить»"]},
+ {c:"Ацтеки",t:"Нанауацин: прыжок в костёр ради нового Солнца",s:"aztec heroic",h:["Совет богов в Теотиуакане","Почему прыгнул бедный больной бог, а не богатый Текусистекатль","Откуда на Луне кролик"]},
+ {c:"Ацтеки",t:"Рождение Уицилопочтли на горе Коатепек",s:"aztec epic",h:["Мать Коатликуэ и перо, упавшее с неба","Битва с сестрой Койольшауки и четырьмястами братьями","Каменный диск Койольшауки из Темпло Майор"]},
+ {c:"Ацтеки",t:"Основание Теночтитлана: орёл на кактусе",s:"aztec heroic",h:["Пророчество Уицилопочтли о знаке","Орёл и кактус на гербе Мексики","Город посреди озера Тескоко"]},
+ {c:"Ацтеки",t:"Тескатлипока — Дымящееся зеркало",s:"aztec dark",h:["Соперник Кецалькоатля","Обсидиановое зеркало как символ","Юноша, которого год почитали как бога"]},
+ {c:"Ацтеки",t:"Миктлан: девять уровней загробного мира",s:"aztec dark",h:["Путь умершего длится четыре года","Собака-проводник через реку","Кецалькоатль крадёт кости мёртвых, чтобы создать людей"]},
+ {c:"Ацтеки",t:"Тлалок — бог дождя и грозы",s:"aztec mystic",h:["Рай Тлалокан для утонувших и убитых молнией","Храм Тлалока рядом с храмом Уицилопочтли","Почему дождь требовал жертв"]},
+ {c:"Ацтеки",t:"Камень Солнца: ацтекский календарь",s:"aztec mystic",h:["Камень нашли в Мехико в 1790 году","Два календаря: на 260 и на 365 дней","Почему это не календарь в привычном смысле"]},
+ {c:"Ацтеки",t:"Игра в мяч у ацтеков: спорт или ритуал?",s:"aztec playful",h:["Каучуковый мяч, который нельзя трогать руками","Поле как модель космоса","Что на самом деле известно о жертвах после игры"]},
+ {c:"Ацтеки",t:"Цветочные войны: битва ради пленников",s:"aztec epic",h:["Договорные войны с Тлашкалой","Зачем ацтекам были нужны пленники, а не земли","Как это помогло Кортесу"]},
+ {c:"Ацтеки",t:"Шипе-Тотек: обновление через сброшенную кожу",s:"aztec dark",h:["Весенний праздник Тлакашипеуалистли","Связь с маисом и обновлением природы","Почему этот образ так пугал испанцев"]},
+ {c:"Майя",t:"Пополь-Вух: люди из глины, дерева и кукурузы",s:"aztec mystic",h:["Священная книга народа киче","Почему первые люди из глины и дерева не подошли","Маис как плоть человека"]},
+ {c:"Майя",t:"Близнецы-герои против владык Шибальбы",s:"aztec playful",h:["Пополь-Вух, история Хунахпу и Шбаланке","Испытания в Доме мрака и Доме ножей","Игра в мяч с богами смерти"]},
+ {c:"Психология",t:"Тень по Юнгу: что мы прячем от себя",s:"psy dark",h:["Юнг, «Эон», глава «Тень»","Как работает проекция","Как узнать свою тень по раздражению на других"]},
+ {c:"Психология",t:"Архетип трикстера",s:"psy playful",h:["Юнг, «О психологии образа трикстера»","Гермес, Локи, Иванушка-дурачок","Зачем культуре нарушитель правил"]},
+ {c:"Психология",t:"Эффект Даннинга — Крюгера",s:"psy playful",h:["Статья Крюгера и Даннинга, 1999","Что исследование показало на самом деле","Почему популярный график из мемов неверен"]},
+ {c:"Психология",t:"Пирамида Маслоу, которую не рисовал Маслоу",s:"psy light",h:["Маслоу, «Теория человеческой мотивации», 1943","Кто на самом деле нарисовал пирамиду","Самоактуализация"]},
+ {c:"Психология",t:"Стэнфордский тюремный эксперимент",s:"psy dark",h:["Филип Зимбардо, 1971","Критика Тибо Ле Тексье","Можно ли верить выводам"]},
+ {c:"Психология",t:"Петля привычки: сигнал, рутина, награда",s:"psy playful",h:["Чарльз Дахигг, «Сила привычки»","Опыты с крысами в лабиринте в MIT","Как переписать рутину, не трогая сигнал"]},
+ {c:"Философия",t:"Марк Аврелий: император-стоик",s:"philo mystic",h:["«Размышления» («Наедине с собой»)","Чем стоицизм отличается от равнодушия","Дихотомия контроля у Эпиктета"]},
+ {c:"Философия",t:"Притча о пещере Платона",s:"philo mystic",h:["Платон, «Государство», книга VII","Тени на стене и узники","Почему освобождённого не хотят слушать"]}
+];
+const IMP = ["Разговор с собой пятнадцатилетним","Почему люди боятся перемен","Утро, которое изменило бы твою жизнь","Деньги или время: что дороже?","Правда, которую трудно сказать другу","Зачем человеку ритуалы","Лучший совет, который ты проигнорировал","Город или деревня: где правильно жить?","Почему мы откладываем всё на завтра","Страх выступать перед людьми","Что такое настоящая дружба","Красота: врождённая или заработанная?","Разрешить себе ошибаться","Привычка, которую пора бросить","Чему учит работа руками","Роскошь, которая на самом деле не нужна","Интернет сделал нас умнее или глупее?","Скорость жизни в большом городе","Гордость: сила или слабость?","Ревность в отношениях","Карма существует?","Работа мечты: существует ли она?","Рутина убивает или спасает?","Вера без религии","Самая странная традиция в твоей семье","Друг, который пропал из жизни","Почему старые вещи кажутся лучше","Тренировка тела и тренировка разума","Первая машина","Риск, о котором ты не жалеешь","Критика: как её принимать","Если бы завтра пропал интернет","Перфекционизм: тормоз или мотор?","Прощение: для себя или для другого?","Почему мы верим в приметы","Характер формируется в детстве?","Справедливость существует?","Как распознать манипулятора","Ранний подъём: польза или мода?","Сериалы крадут наше время?","Хороший разговор: какой он?","Зачем человеку горы","Что бы ты передал своим детям","Кризис тридцати лет","Детство в деревне против детства в городе","Свобода против стабильности","Тревога: враг или сигнал?","Внутренний критик","Правило, которое ты нарушаешь","Мир через сто лет","Сравнивать себя с другими","Режим дня: свобода или тюрьма?","Дорога, которая запомнилась навсегда","Подарок, который ты не забудешь","Терпение: как его тренировать","Карьера или призвание?","Герой твоего детства","Разочарование в кумире","Зачем взрослому человеку сказки","Странный сон, который ты помнишь","Мораль сказки, которую ты понял поздно"];
+const CAT_COLOR = {"Мифы":"c-teal","Тысячеликий герой":"c-blue","Библия":"c-yellow","Психология":"c-pink","Философия":"c-orange","Ацтеки":"c-red","Майя":"c-teal","Экспромт":"c-orange","Своя тема":"c-paper"};
+
+/* ---------- хранилище ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const S = Object.assign({speak:60, think:10, sound:true}, store.get("rr.set", {}));
+const custom = Object.assign({prep:"", imp:""}, store.get("rr.custom", {}));
+let used = Object.assign({prep:[], imp:[]}, store.get("rr.used", {}));
+let pending = store.get("rr.pending", null);
+const saveS = () => store.set("rr.set", S);
+
+/* ---------- утилиты ---------- */
+const $ = s => document.querySelector(s);
+const stage = $("#stage");
+const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const fmt = s => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b; return c; };
+const lines = s => s.split("\n").map(x => x.trim()).filter(Boolean);
+function rich(text, words = true){
+  const r = ch => /[рР]/.test(ch) ? `<span class="r">${ch}</span>` : esc(ch);
+  if (!words) return [...text].map(r).join("");
+  let i = 0;
+  return text.split(/(\s+)/).map(p => /^\s+$/.test(p) || !p ? p : `<span class="w" style="--i:${i++}">${[...p].map(r).join("")}</span>`).join("");
+}
+const later = [];
+const after = (ms, fn) => { const h = setTimeout(fn, ms); later.push(h); return h; };
+const clearLater = () => later.splice(0).forEach(clearTimeout);
+const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+const setColor = (el, c) => { el.className = el.className.replace(/\bc-\w+/g, "").trim() + " " + c; };
+
+/* звёзды-бёрсты: тень и контур рисуются одной функцией */
+function burstPts(n, r1, r2, o){
+  const p = [];
+  for (let i = 0; i < n * 2; i++){ const r = i % 2 ? r2 : r1, a = Math.PI * i / n - Math.PI / 2; p.push((50 + o + Math.cos(a) * r).toFixed(1) + "," + (50 + o + Math.sin(a) * r).toFixed(1)); }
+  return p.join(" ");
+}
+document.querySelectorAll("[data-burst]").forEach(el => {
+  const [n, r1, r2] = el.dataset.burst.split(",").map(Number);
+  el.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 100 100" aria-hidden="true"><polygon class="bs" points="${burstPts(n, r1, r2, 3.5)}"/><polygon class="bf" points="${burstPts(n, r1, r2, 0)}"/></svg>`);
+});
+/* чёрные точки-метки на циферблате */
+$("#dots").innerHTML = Array.from({length:12}, (_, i) => { const a = i / 12 * Math.PI * 2; return `<circle class="dot" cx="${(110 + Math.cos(a) * 66).toFixed(1)}" cy="${(110 + Math.sin(a) * 66).toFixed(1)}" r="${i % 3 ? 2 : 3.6}"/>`; }).join("");
+
+/* ---------- звук ---------- */
+let ac = null;
+function audio(){
+  if (!S.sound) return null;
+  if (!ac){
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch(e){} /* iPhone: звук и при беззвучном режиме */
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
+  }
+  if (ac.state === "suspended") ac.resume().catch(()=>{});
+  return ac;
+}
+function tone(freq, dur, type = "sine", vol = .18, when = 0){
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .03);
+}
+function rrr(dur = .42){ /* раскатистое «ррр»: пила, прерываемая ~26 раз в секунду */
+  const a = audio(); if (!a) return;
+  const t = a.currentTime, o = a.createOscillator(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain(), f = a.createBiquadFilter(), out = a.createGain();
+  o.type = "sawtooth"; o.frequency.value = 112; lfo.type = "square"; lfo.frequency.value = 26;
+  f.type = "lowpass"; f.frequency.value = 1100; lg.gain.value = .5; g.gain.value = .5;
+  out.gain.setValueAtTime(.0001, t); out.gain.exponentialRampToValueAtTime(.09, t + .03); out.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  lfo.connect(lg).connect(g.gain); o.connect(g).connect(f).connect(out).connect(a.destination);
+  o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
+}
+const sfx = {
+  tick(){ tone(2200, .025, "square", .035); },
+  lock(){ tone(660, .16, "triangle", .15); tone(990, .38, "sine", .12, .06); },
+  beep(){ tone(740, .14, "sine", .2); },
+  go(){ tone(988, .12, "triangle", .2); tone(1318, .45, "sine", .17, .1); },
+  end(){ tone(523, 1.5, "sine", .2); tone(784, 1.7, "sine", .12, .03); tone(1046, 1.2, "sine", .06, .06); },
+  pop(){ tone(1180, .1, "triangle", .14); },
+  rrr
+};
+
+/* ---------- мелодии тем: собираются кодом прямо в браузере, у каждой темы своя ---------- */
+const Music = (() => {
+  const SC = {aeolian:[0,2,3,5,7,8,10], dorian:[0,2,3,5,7,9,10], phrygian:[0,1,3,5,7,8,10], ionian:[0,2,4,5,7,9,11], lydian:[0,2,4,6,7,9,11], mixo:[0,2,4,5,7,9,10], harm:[0,2,3,5,7,8,11], hijaz:[0,1,4,5,7,8,10], pmin:[0,3,5,7,10], pmaj:[0,2,4,7,9]};
+  const MOODS = {
+    tragic: {label:"Трагедия", bpm:64,  scale:"aeolian",  root:57, dir:-1, prog:[0,5,3,4], rh:[[2,1,1],[1.5,.5,2],[3,1],[1,1,2]], drum:"soft",  leg:1},
+    heroic: {label:"Подвиг",   bpm:102, scale:"mixo",     root:60, dir:1,  prog:[0,6,3,0], rh:[[.75,.25,1,2],[1,.5,.5,2],[.75,.25,.75,.25,2]], drum:"march", leg:.8},
+    epic:   {label:"Эпос",     bpm:82,  scale:"harm",     root:57, dir:0,  prog:[0,5,6,4], rh:[[1,1,2],[.5,.5,1,2],[1.5,.5,1,1]], drum:"epic",  leg:.9},
+    dark:   {label:"Мрак",     bpm:58,  scale:"phrygian", root:52, dir:-1, prog:[0,1,0,1], rh:[[2,2],[3,1],[1,1,2]], drum:"dark",  leg:1},
+    mystic: {label:"Тайна",    bpm:74,  scale:"lydian",   root:62, dir:1,  prog:[0,1,0,4], rh:[[.5,.5,.5,.5,2],[1,.5,.5,2],[.5,.5,1,2]], drum:"none",  leg:1.1},
+    playful:{label:"Хитрость", bpm:120, scale:"pmaj",     root:64, dir:0,  prog:[0,3,4,0], rh:[[.5,.5,.5,.5,1,1],[.25,.25,.5,1,.5,.5,1],[.5,.5,1,.5,.5,1]], drum:"play", leg:.5},
+    light:  {label:"Свет",     bpm:86,  scale:"ionian",   root:62, dir:1,  prog:[0,4,5,3], rh:[[1,1,1,1],[1.5,.5,2],[.5,.5,1,2]], drum:"none",  leg:.95}
+  };
+  /* «оркестр» каждой культуры: ведущий инструмент, сопровождение, ударные и лады */
+  const PALS = {
+    greek: {lead:"lyre",  pad:"arp", arp:"lyre",  drone:1, drum:"frame",    sc:{tragic:"dorian", dark:"phrygian", epic:"dorian", heroic:"mixo"}},
+    norse: {lead:"horn",  pad:"none", drone:1, drum:"frame",                sc:{heroic:"dorian", light:"mixo", mystic:"dorian", playful:"dorian"}},
+    slavic:{lead:"gusli", pad:"arp", arp:"gusli", drone:1, drum:"frame",    sc:{mystic:"dorian", heroic:"dorian"}},
+    east:  {lead:"oud",   pad:"none", drone:1, drum:"darbuka",              sc:{tragic:"hijaz", heroic:"hijaz", epic:"hijaz", mystic:"hijaz", dark:"phrygian", playful:"hijaz", light:"hijaz"}},
+    hero:  {lead:"brass", pad:"strings", drum:"timp",                       sc:{}},
+    bible: {lead:"organ", pad:"choir", drum:"timp", bells:1, calm:1,        sc:{}},
+    aztec: {lead:"flute", pad:"none", drone:1, drum:"huehuetl", rattle:1,   sc:{tragic:"pmin", epic:"pmin", dark:"pmin", mystic:"pmin", heroic:"pmaj", playful:"pmaj", light:"pmaj"}, up:12},
+    psy:   {lead:"bell",  pad:"epiano", drone:1, drum:"soft",               sc:{}, up:12},
+    philo: {lead:"harpsi",pad:"arp", arp:"harpsi", drone:1, drum:"soft",    sc:{}}
+  };
+  const caches = new WeakMap();
+  const cache = a => { let c = caches.get(a); if (!c){ c = {ks:new Map(), noise:null, ir:null}; caches.set(a, c); } return c; };
+  const hash = s => { let h = 2166136261; for (const ch of s){ h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const rng = seed => () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  function spec(topic){
+    const R = rng(hash(topic.t)), parts = (topic.s || "").split(" ");
+    const mood = MOODS[parts[1]] ? parts[1] : ["mystic","light","epic","tragic"][Math.floor(R() * 4)];
+    return {pal: PALS[parts[0]] ? parts[0] : "philo", mood, R};
+  }
+
+  function noiseSrc(a){
+    const c = cache(a);
+    if (!c.noise){ const n = a.sampleRate * 2; c.noise = a.createBuffer(1, n, a.sampleRate); const d = c.noise.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; }
+    const s = a.createBufferSource(); s.buffer = c.noise; s.loop = true; return s;
+  }
+  function reverb(a){
+    const c = cache(a);
+    if (!c.ir){ const sr = a.sampleRate, n = Math.floor(sr * 2.6); c.ir = a.createBuffer(2, n, sr);
+      for (let ch = 0; ch < 2; ch++){ const d = c.ir.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.8); } }
+    const cv = a.createConvolver(); cv.buffer = c.ir; return cv;
+  }
+  /* щипковая струна по алгоритму Карплуса — Стронга */
+  function ks(a, f, b, dk){
+    const c = cache(a), key = Math.round(f * 10) + "|" + b + "|" + dk;
+    let buf = c.ks.get(key); if (buf) return buf;
+    const sr = a.sampleRate, n = Math.floor(sr * 1.7), N = Math.max(2, Math.round(sr / f));
+    buf = a.createBuffer(1, n, sr); const d = buf.getChannelData(0), line = new Float32Array(N);
+    let p = 0; for (let i = 0; i < N; i++){ p += ((Math.random() * 2 - 1) - p) * b; line[i] = p; }
+    let j = 0; for (let i = 0; i < n; i++){ const nx = j + 1 === N ? 0 : j + 1, v = line[j]; d[i] = v; line[j] = dk * .5 * (v + line[nx]); j = nx; }
+    c.ks.set(key, buf); return buf;
+  }
+  const PL = {lyre:{b:.55, d:.9975, v:.72, lp:4200}, gusli:{b:.75, d:.9985, v:.62, lp:5200}, oud:{b:.3, d:.996, v:1.1, lp:2200}, harpsi:{b:.95, d:.995, v:.8, lp:7000}};
+  function pluck(x, kind, t, f, vel){
+    const a = x.a, k = PL[kind], s = a.createBufferSource(), lp = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = ks(a, f, k.b, k.d); lp.type = "lowpass"; lp.frequency.value = k.lp; g.gain.value = vel * k.v;
+    s.connect(lp).connect(g).connect(x.bus); s.start(t); s.stop(t + 1.7);
+  }
+  function brass(x, t, f, dur, vel, soft){
+    const a = x.a, g = a.createGain(), lp = a.createBiquadFilter(), e = t + Math.max(.12, dur), peak = vel * (soft ? .15 : .17);
+    lp.type = "lowpass"; lp.Q.value = .8;
+    lp.frequency.setValueAtTime(f * 1.1, t); lp.frequency.linearRampToValueAtTime(f * (soft ? 3 : 5.5), t + .09); lp.frequency.linearRampToValueAtTime(f * (soft ? 2 : 3.2), e);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(peak, t + (soft ? .12 : .05)); g.gain.linearRampToValueAtTime(peak * .8, e); g.gain.linearRampToValueAtTime(.0001, e + .18);
+    const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .006, t + .35); lfo.connect(lg);
+    [1, 1.005].forEach(m => { const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = f * m; lg.connect(o.frequency); o.connect(lp); o.start(t); o.stop(e + .25); });
+    lfo.start(t); lfo.stop(e + .25); lp.connect(g).connect(x.bus);
+  }
+  function flute(x, t, f, dur, vel){
+    const a = x.a, e = t + Math.max(.15, dur), g = a.createGain(), peak = vel * .2;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(peak, t + .08); g.gain.linearRampToValueAtTime(peak * .85, e); g.gain.linearRampToValueAtTime(.0001, e + .15);
+    const o = a.createOscillator(), o2 = a.createOscillator(), g2 = a.createGain(); o.frequency.value = f; o2.type = "triangle"; o2.frequency.value = f * 2; g2.gain.value = .12;
+    const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = 5.6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .01, t + .3); lfo.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency);
+    const n = noiseSrc(a), bp = a.createBiquadFilter(), ng = a.createGain(); bp.type = "bandpass"; bp.frequency.value = f * 1.5; bp.Q.value = 2; ng.gain.value = .35;
+    o.connect(g); o2.connect(g2).connect(g); n.connect(bp).connect(ng).connect(g); g.connect(x.bus);
+    [o, o2, lfo].forEach(s => { s.start(t); s.stop(e + .2); }); n.start(t, Math.random()); n.stop(e + .2);
+  }
+  function organ(x, t, f, dur, vel){
+    const a = x.a, e = t + Math.max(.15, dur), g = a.createGain(), peak = vel * .13;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(peak, t + .04); g.gain.setValueAtTime(peak, e); g.gain.linearRampToValueAtTime(.0001, e + .25); g.connect(x.bus);
+    [[1,.6],[2,.3],[3,.12],[4,.1],[.5,.25]].forEach(([m, v]) => { const o = a.createOscillator(), og = a.createGain(); o.frequency.value = f * m; og.gain.value = v; o.connect(og).connect(g); o.start(t); o.stop(e + .3); });
+  }
+  function bell(x, t, f, vel){
+    const a = x.a, car = a.createOscillator(), mod = a.createOscillator(), mg = a.createGain(), g = a.createGain();
+    car.frequency.value = f; mod.frequency.value = f * 3.5; mg.gain.setValueAtTime(f * 2.2, t); mg.gain.exponentialRampToValueAtTime(f * .05, t + 1.6); mod.connect(mg).connect(car.frequency);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vel * .26, t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + 2.2);
+    car.connect(g).connect(x.bus); [car, mod].forEach(s => { s.start(t); s.stop(t + 2.3); });
+  }
+  function epiano(x, t, f, vel){
+    const a = x.a, car = a.createOscillator(), mod = a.createOscillator(), mg = a.createGain(), g = a.createGain();
+    car.frequency.value = f; mod.frequency.value = f; mg.gain.setValueAtTime(f * 1.6, t); mg.gain.exponentialRampToValueAtTime(f * .15, t + .8); mod.connect(mg).connect(car.frequency);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vel * .14, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + 1.8);
+    car.connect(g).connect(x.bus); [car, mod].forEach(s => { s.start(t); s.stop(t + 1.9); });
+  }
+  function pad(x, t, freqs, dur, vel, choir){
+    const a = x.a, e = t + dur, g = a.createGain(), att = Math.min(choir ? .6 : .4, dur * .45), peak = vel * (choir ? .16 : .035);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(peak, t + att); g.gain.setValueAtTime(peak, Math.max(t + att, e - .15)); g.gain.linearRampToValueAtTime(.0001, e + .45);
+    const sum = a.createGain();
+    if (choir){ [[700,5,1],[1150,7,.6],[2600,8,.25]].forEach(([fr, q, v]) => { const bp = a.createBiquadFilter(), bg = a.createGain(); bp.type = "bandpass"; bp.frequency.value = fr; bp.Q.value = q; bg.gain.value = v; sum.connect(bp).connect(bg).connect(g); }); }
+    else { const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; sum.connect(lp).connect(g); }
+    freqs.forEach(f => [-8, 0, 8].forEach(ct => { const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.detune.value = ct; o.connect(sum); o.start(t); o.stop(e + .5); }));
+    g.connect(x.bus);
+  }
+  function drone(x, t, end, fs){
+    const a = x.a, g = a.createGain(), lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 520;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.05, t + 1.2); g.gain.setValueAtTime(.05, end - 1); g.gain.linearRampToValueAtTime(.0001, end);
+    fs.forEach(f => [-5, 5].forEach(ct => { const o = a.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.detune.value = ct; o.connect(lp); o.start(t); o.stop(end + .1); }));
+    lp.connect(g).connect(x.bus);
+  }
+  function tom(x, t, f0, f1, dec, vel){
+    const a = x.a, o = a.createOscillator(), g = a.createGain();
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dec * .6);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vel * .5, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + dec);
+    o.connect(g).connect(x.bus); o.start(t); o.stop(t + dec + .05);
+  }
+  function hiss(x, t, type, fr, q, dec, vel){
+    const a = x.a, n = noiseSrc(a), f = a.createBiquadFilter(), g = a.createGain();
+    f.type = type; f.frequency.value = fr; f.Q.value = q;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vel, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + dec);
+    n.connect(f).connect(g).connect(x.bus); n.start(t, Math.random() * 1.5); n.stop(t + dec + .02);
+  }
+  function gong(x, t, f, vel){
+    const a = x.a;
+    [[1,.5],[1.47,.3],[2.09,.22],[2.56,.15],[3.2,.1]].forEach(([m, v]) => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = f * m;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vel * v * .5, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + 3.6); o.connect(g).connect(x.bus); o.start(t); o.stop(t + 3.7); });
+  }
+  function hit(x, P, kind, t, vel){
+    const d = P.drum;
+    if (kind === "low"){
+      if (d === "frame"){ tom(x, t, 110, 60, .5, vel); hiss(x, t, "bandpass", 300, 1, .15, vel * .12); }
+      else if (d === "huehuetl"){ tom(x, t, 150, 80, .35, vel); hiss(x, t, "bandpass", 900, 1, .05, vel * .08); }
+      else if (d === "darbuka") tom(x, t, 120, 75, .35, vel);
+      else if (d === "timp"){ tom(x, t, 92, 80, 1.1, vel * .9); hiss(x, t, "lowpass", 400, .7, .3, vel * .08); }
+      else tom(x, t, 80, 50, .4, vel * .5);
+    } else if (kind === "snare"){
+      if (d === "darbuka"){ hiss(x, t, "highpass", 3500, .7, .06, vel * .3); tom(x, t, 900, 700, .05, vel * .25); }
+      else if (d === "huehuetl") hiss(x, t, "bandpass", 6500, .8, .09, vel * .2);
+      else { hiss(x, t, "highpass", 1200, .7, .14, vel * .3); tom(x, t, 220, 160, .08, vel * .25); }
+    } else if (kind === "clap"){
+      [0, .011, .022].forEach(o => hiss(x, t + o, "bandpass", 1400, 1, .03, vel * .3)); hiss(x, t + .03, "bandpass", 1400, 1, .12, vel * .2);
+    }
+  }
+  const PATTERNS = {
+    none: [], soft: [[0,"low",.4]],
+    march: [[0,"low",1],[1,"snare",.6],[2,"low",.9],[2.5,"low",.6],[3,"snare",.7]],
+    epic: [[0,"low",1],[1.5,"low",.7],[2,"low",.9],[3,"low",.8],[3.5,"low",.6]],
+    dark: [[0,"low",.7]],
+    play: [[0,"low",.8],[1,"clap",.6],[2,"low",.7],[2.5,"low",.4],[3,"clap",.6]]
+  };
+
+  /* раскладывает всю мелодию на 10 секунд вперёд и подключает к out */
+  function build(a, topic, t0, out){
+    const {pal, mood, R} = spec(topic), M = MOODS[mood], P = PALS[pal];
+    const scale = SC[P.sc[mood] || M.scale], L = scale.length;
+    const root = M.root + (P.up || 0) + Math.floor(R() * 5) - 2;
+    const beat = 60 / (M.bpm * (.94 + R() * .12));
+    const midi = d => root + 12 * Math.floor(d / L) + scale[((d % L) + L) % L];
+    const f = d => mtof(midi(d));
+    const END = t0 + 10;
+    const vol = a.createGain(); vol.gain.setValueAtTime(.0001, t0); vol.gain.linearRampToValueAtTime(1, t0 + .05); vol.gain.setValueAtTime(1, END - 1.6); vol.gain.linearRampToValueAtTime(.0001, END);
+    vol.connect(out);
+    const bus = a.createGain(), wet = a.createGain(); wet.gain.value = (mood === "mystic" || pal === "bible") ? .55 : .32;
+    bus.connect(vol); bus.connect(wet); wet.connect(reverb(a)).connect(vol);
+    const x = {a, bus};
+
+    const motif = () => {
+      const rh = M.rh[Math.floor(R() * M.rh.length)]; let d = [0, 2, 4][Math.floor(R() * 3)]; const notes = [];
+      rh.forEach((len, i) => {
+        if (i){
+          let st = [-1, 1, -1, 1, -2, 2][Math.floor(R() * 6)];
+          if (M.dir && R() < .45) st = Math.abs(st) * M.dir;
+          if (mood === "heroic" && R() < .3) st = R() < .7 ? 3 : -3;
+          if (mood === "playful" && R() < .35) st = R() < .5 ? -3 : 3;
+          d = Math.max(-3, Math.min(9, d + st));
+        }
+        notes.push([len, d]);
+      });
+      return notes;
+    };
+    const A = motif(), B = motif();
+    const bars = Math.max(2, Math.floor((10 - 1.8) / beat / 4));
+    const lead = (t, d, dur, v) => {
+      const fr = f(d);
+      if (PL[P.lead]) pluck(x, P.lead, t, fr, v);
+      else if (P.lead === "horn") brass(x, t, fr, dur, v, true);
+      else if (P.lead === "brass") brass(x, t, fr, dur, v, false);
+      else if (P.lead === "flute") flute(x, t, fr, dur, v);
+      else if (P.lead === "organ") organ(x, t, fr, dur, v);
+      else bell(x, t, fr, v);
+    };
+    const chordF = c => [c, c + 2, c + 4].map(d => f(d - L) / ((P.up || 0) ? 2 : 1));
+    const accomp = (t, c, dur) => {
+      const fs = chordF(c);
+      if (P.pad === "arp"){ const step = beat / 2; for (let i = 0; i * step < dur - .01; i++) pluck(x, P.arp, t + i * step, fs[i % 3] * (i % 6 >= 3 ? 2 : 1), .32); }
+      else if (P.pad === "strings") pad(x, t, fs, dur, 1, false);
+      else if (P.pad === "choir") pad(x, t, fs, dur, 1, true);
+      else if (P.pad === "epiano"){ fs.forEach(fr => epiano(x, t, fr, 1)); if (dur > beat * 3) fs.forEach(fr => epiano(x, t + beat * 2, fr, .7)); }
+    };
+    const drums = (bt, bar) => {
+      if (P.calm && !["epic", "dark", "heroic"].includes(mood)) return;
+      if (mood === "dark" && bar === 0) gong(x, bt, mtof(root - 24), 1);
+      PATTERNS[M.drum].forEach(([b, k, v]) => hit(x, P, k, bt + b * beat, v));
+      if (P.rattle && mood !== "tragic") for (let i = 1; i < 8; i += 2) hiss(x, bt + i * beat / 2, "bandpass", 6500, .8, .07, .14);
+      if (P.bells && (mood === "mystic" || mood === "light")) bell(x, bt, f(M.prog[bar % M.prog.length] + L), .5);
+    };
+
+    if (P.drone) drone(x, t0, END, [mtof(root - 12 - (P.up || 0)), mtof(root - 5 - (P.up || 0))]);
+    for (let b = 0; b < bars; b++){
+      const bt = t0 + b * 4 * beat, chord = M.prog[b % M.prog.length];
+      const notes = b % 2 ? B : A, shift = b === 2 && R() < .6 ? chord : 0;
+      let tt = bt;
+      notes.forEach(([len, d]) => { lead(tt, Math.min(10, d + shift), len * beat * M.leg, .9 - R() * .15); tt += len * beat; });
+      accomp(bt, chord, 4 * beat);
+      drums(bt, b);
+    }
+    const tEnd = t0 + bars * 4 * beat, rest = Math.max(1.2, END - tEnd);
+    lead(tEnd, mood === "dark" || mood === "tragic" ? 0 : L, rest, .85);
+    accomp(tEnd, 0, rest);
+    if (M.drum !== "none" && !(P.calm && !["epic", "dark", "heroic"].includes(mood))) hit(x, P, "low", tEnd, .9);
+    return END;
+  }
+
+  let cur = null, onState = () => {};
+  function stop(){
+    if (!cur) return;
+    const {master, timer, a} = cur; cur = null; clearTimeout(timer);
+    try { const now = a.currentTime; master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value, now); master.gain.linearRampToValueAtTime(.0001, now + .25); } catch(e){}
+    setTimeout(() => { try { master.disconnect(); } catch(e){} }, 400);
+    onState(false);
+  }
+  function play(topic){
+    stop();
+    const a = audio(); if (!a) return;
+    const master = a.createGain(), comp = a.createDynamicsCompressor();
+    master.gain.value = .8; comp.threshold.value = -12; comp.ratio.value = 12; comp.attack.value = .003; comp.release.value = .2;
+    master.connect(comp).connect(a.destination);
+    build(a, topic, a.currentTime + .08, master);
+    const me = {master, a, timer: 0};
+    me.timer = setTimeout(() => { if (cur === me){ cur = null; onState(false); setTimeout(() => { try { master.disconnect(); } catch(e){} }, 300); } }, 10200);
+    cur = me; onState(true);
+  }
+  function render(topic){ /* для проверки громкости без звука */
+    const oc = new OfflineAudioContext(2, 44100 * 10.5, 44100), master = oc.createGain(), comp = oc.createDynamicsCompressor();
+    master.gain.value = .8; comp.threshold.value = -12; comp.ratio.value = 12; comp.attack.value = .003; comp.release.value = .2; master.connect(comp).connect(oc.destination);
+    build(oc, topic, .05, master); return oc.startRendering();
+  }
+  return {play, stop, render, label: t => MOODS[spec(t).mood].label, playing: () => !!cur, set onState(fn){ onState = fn; }};
+})();
+window.RRMusic = Music;
+
+/* ---------- экраны ---------- */
+const screens = {home:$("#home"), draw:$("#draw"), run:$("#run"), done:$("#done")};
+let cur = "home";
+function show(name){
+  for (const k in screens) screens[k].hidden = k !== name;
+  restart(screens[name], "in");
+  cur = name; stage.dataset.state = name; stage.dataset.screen = name;
+}
+
+/* ---------- колоды ---------- */
+function pool(m){
+  if (m === "prep") return PREP.concat(lines(custom.prep).map(t => ({c:"Своя тема", t, h:[]})));
+  return IMP.map(t => ({c:"Экспромт", t})).concat(lines(custom.imp).map(t => ({c:"Своя тема", t})));
+}
+function leftIn(m){ const p = pool(m); return p.filter(x => !used[m].includes(x.t)).length || p.length; }
+function drawTopic(m){
+  const p = pool(m);
+  let left = p.filter(x => !used[m].includes(x.t));
+  if (!left.length){ used[m] = []; left = p.slice(); }
+  const pick = rnd(left);
+  used[m].push(pick.t); store.set("rr.used", used);
+  return pick;
+}
+
+/* ---------- главная ---------- */
+$("#homeTitle").innerHTML = rich("Рулетка") + "<br>" + rich("речи");
+function renderHome(){
+  for (const m of ["prep", "imp"]){
+    const n = pool(m).length;
+    $("#meta-" + m).textContent = `${n} ${plural(n, "тема", "темы", "тем")} · осталось ${leftIn(m)}`;
+  }
+  $("#pending").hidden = !pending;
+  if (pending) $("#pendingT").innerHTML = rich(pending.t, false);
+  $("#sumSpeakV").textContent = fmt(S.speak);
+  $("#sumThinkV").textContent = S.think + " с";
+}
+
+/* ---------- вытягивание темы ---------- */
+let mode = null, topic = null, busy = false, drawId = 0;
+const musicBtn = $("#musicBtn");
+Music.onState = on => musicBtn.classList.toggle("playing", on);
+musicBtn.addEventListener("click", () => { if (Music.playing()) Music.stop(); else if (topic) Music.play(topic); });
+const reelPanel = $("#reelPanel"), strip = $("#strip"), topicBox = $("#topic"), extra = $("#extra"), drawActions = $("#drawActions"), rburst = $("#rburst");
+
+function spin(final, list, id){
+  return new Promise(res => {
+    const others = list.filter(x => x.t !== final), items = [];
+    for (let i = 0; i < 26; i++) items.push(others.length ? rnd(others).t : final);
+    items.push(final);
+    strip.innerHTML = items.map(t => `<div class="reel-item">${rich(t, false)}</div>`).join("");
+    strip.style.transform = "translate3d(0,0,0)";
+    reelPanel.hidden = false; reelPanel.classList.remove("out", "landed");
+    const kids = strip.children, h = kids[0].getBoundingClientRect().height, total = (items.length - 1) * h;
+    const dur = REDUCE ? 0 : 2700, t0 = performance.now();
+    let last = -1;
+    stage.dataset.state = "spin";
+    function f(now){
+      if (id !== drawId) return res(false);
+      const p = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - p, 4), yy = e * total;
+      strip.style.transform = `translate3d(0,${-yy}px,0)`;
+      const idx = Math.round(yy / h);
+      if (idx !== last){ if (kids[last]) kids[last].classList.remove("on"); if (kids[idx]) kids[idx].classList.add("on"); last = idx; if (p < 1) sfx.tick(); }
+      if (p < 1) requestAnimationFrame(f);
+      else { reelPanel.classList.add("landed"); sfx.lock(); setTimeout(() => res(id === drawId), REDUCE ? 0 : 420); }
+    }
+    requestAnimationFrame(f);
+  });
+}
+
+async function startDraw(m, forced){
+  if (busy && cur === "draw") return;
+  clearLater(); stopTimer(); Music.stop();
+  const id = ++drawId; busy = true; mode = m; audio();
+  topic = forced || drawTopic(m);
+  if (m === "prep" && !forced){ pending = topic; store.set("rr.pending", pending); }
+  musicBtn.hidden = true;
+  const dm = $("#drawMode");
+  dm.textContent = m === "prep" ? "Подготовка" : "Экспромт"; setColor(dm, m === "prep" ? "c-pink" : "c-orange");
+  $("#deckLeft").textContent = `в колоде ${leftIn(m)}`;
+  topicBox.hidden = true; rburst.hidden = true; extra.innerHTML = ""; extra.classList.remove("in"); drawActions.hidden = true;
+  show("draw");
+  const ok = await spin(topic.t, pool(m), id);
+  if (!ok || cur !== "draw") return;
+  reveal();
+  busy = false;
+}
+
+function trillIn(container, startMs, step, onEach){
+  const rs = [...container.querySelectorAll(".r")];
+  rs.forEach((r, i) => after(REDUCE ? 0 : startMs + i * step, () => { r.classList.remove("trill"); void r.offsetWidth; r.classList.add("trill"); onEach && onEach(i + 1); }));
+  return rs.length;
+}
+
+function reveal(){
+  reelPanel.classList.add("out"); after(320, () => reelPanel.hidden = true);
+  const cat = $("#cat"); cat.textContent = topic.c; setColor(cat, CAT_COLOR[topic.c] || "c-paper");
+  const tt = $("#topicText"); tt.innerHTML = rich(topic.t);
+  topicBox.hidden = false; restart(topicBox, "reveal");
+  stage.dataset.state = "draw";
+  const nWords = tt.querySelectorAll(".w").length, start = nWords * 55 + 260;
+  const num = $("#rnum"); num.textContent = "0";
+  after(REDUCE ? 0 : start - 120, () => { rburst.hidden = false; restart(rburst, "pop"); sfx.pop(); });
+  const n = trillIn(tt, start, 120, k => num.textContent = k);
+  if (mode === "prep"){
+    Music.play(topic);
+    $("#moodT").textContent = Music.label(topic);
+    musicBtn.hidden = false; restart(musicBtn, "in");
+  } else if (n) after(REDUCE ? 0 : start, () => sfx.rrr(Math.min(.9, .3 + n * .05)));
+  const extraAt = REDUCE ? 0 : start + n * 120 + 200;
+
+  if (mode === "prep"){
+    after(extraAt, () => {
+      const star = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 6 4 9 10 10-6 1-9 4-10 10-1-6-4-9-10-10 6-1 9-4 10-10z" style="fill:var(--ink)"/></svg>`;
+      extra.innerHTML = `<div class="hints panel c-teal tone"><span class="tag c-yellow">С чего начать</span>${
+        topic.h && topic.h.length ? `<ul>${topic.h.map(x => `<li>${star}<span>${esc(x)}</span></li>`).join("")}</ul>` : `<p class="note">Своя тема: материал подбираешь сам.</p>`}</div>`;
+      restart(extra, "in");
+      drawActions.hidden = false; restart(drawActions, "in");
+    });
+  } else {
+    const wait = 1500;
+    after(extraAt, () => {
+      extra.innerHTML = `<div class="wait"><span>Думать ${S.think} с</span><span class="wait-bar"><i style="--d:${wait}ms"></i></span></div>`;
+      restart(extra, "in");
+      after(REDUCE ? 600 : wait, () => startRun(true));
+    });
+  }
+}
+
+/* ---------- таймер ---------- */
+const runEl = $("#run"), prog = $("#prog"), digits = $("#digits"), phaseEl = $("#phase"), cd = $("#cd"), cdBurst = $("#cdBurst"), cdT = $("#cdT"), bubble = $("#bubble"), bubbleT = $("#bubbleT");
+const C = 2 * Math.PI * 86;
+prog.style.strokeDasharray = C.toFixed(2);
+const T = {phase:null, total:0, end:0, left:0, paused:false, raf:0, last:-1, spoken:0};
+let wl = null;
+async function wake(on){
+  try {
+    if (on && "wakeLock" in navigator && !wl){ wl = await navigator.wakeLock.request("screen"); wl.addEventListener("release", () => wl = null); }
+    else if (!on && wl){ await wl.release(); wl = null; }
+  } catch(e){}
+}
+function setBubble(text, c){ bubbleT.innerHTML = rich(text, false); setColor(bubble, c); }
+function paint(left){
+  prog.style.strokeDashoffset = (C * (1 - left / T.total)).toFixed(2);
+  digits.textContent = fmt(Math.ceil(left / 1000));
+}
+function setPhase(p, secs){
+  T.phase = p; T.total = secs * 1000; T.end = performance.now() + T.total; T.paused = false; T.last = -1;
+  runEl.classList.toggle("think", p === "think"); runEl.classList.remove("warn");
+  phaseEl.textContent = p === "think" ? "Думай" : "Говори"; setColor(phaseEl, p === "think" ? "c-blue" : "c-orange");
+  p === "think" ? setBubble("Хмм…", "c-blue") : setBubble("Р-р-р!", "c-pink");
+  $("#skipThink").hidden = p !== "think";
+  $("#stopBtn").textContent = p === "think" ? "Стоп" : "Закончить";
+  $("#pauseBtn").textContent = "Пауза";
+  stage.dataset.state = p;
+  cancelAnimationFrame(T.raf); T.raf = requestAnimationFrame(loop);
+}
+function loop(now){
+  if (T.paused || !T.phase) return;
+  const left = Math.max(0, T.end - now);
+  paint(left);
+  const sec = Math.ceil(left / 1000);
+  if (sec !== T.last){
+    T.last = sec;
+    if (T.phase === "think" && sec > 0 && sec <= 3) sfx.beep();
+    if (T.phase === "speak" && sec <= 10 && sec > 0){
+      if (!runEl.classList.contains("warn")){ runEl.classList.add("warn"); setBubble("Финиш!", "c-red"); }
+      if (sec <= 3) tone(620, .1, "sine", .12);
+    }
+  }
+  if (left <= 0) return phaseEnd();
+  T.raf = requestAnimationFrame(loop);
+}
+function phaseEnd(){
+  if (T.phase === "think"){ goWord(); sfx.go(); setPhase("speak", S.speak); }
+  else { T.spoken = T.total; sfx.end(); finish(); }
+}
+function togglePause(){
+  if (!T.phase) return;
+  if (T.paused){ T.end = performance.now() + T.left; T.paused = false; stage.dataset.state = T.phase; T.raf = requestAnimationFrame(loop); }
+  else { T.left = Math.max(0, T.end - performance.now()); T.paused = true; cancelAnimationFrame(T.raf); stage.dataset.state = "paused"; }
+  $("#pauseBtn").textContent = T.paused ? "Дальше" : "Пауза";
+}
+function stopTimer(){ cancelAnimationFrame(T.raf); T.phase = null; T.paused = false; cd.hidden = true; wake(false); }
+
+const CD_COLORS = ["c-pink", "c-teal", "c-yellow"];
+function cdShow(html, color, word){
+  cd.hidden = false; cdT.innerHTML = html; setColor(cdBurst, color);
+  cdBurst.classList.toggle("word", !!word); restart(cdBurst, "go");
+}
+function goWord(){
+  cdShow(rich("Говори!", false), "c-orange", true);
+  trillIn(cdT, 150, 0);
+  after(850, () => cd.hidden = true);
+}
+function countdown(done){
+  let i = 0;
+  const step = () => {
+    if (i < 3){ cdShow(String(3 - i), CD_COLORS[i], false); sfx.beep(); i++; after(REDUCE ? 400 : 820, step); }
+    else { goWord(); sfx.go(); done(); }
+  };
+  step();
+}
+
+function startRun(withThink){
+  clearLater(); stopTimer(); Music.stop();
+  const rc = $("#runCat"); rc.textContent = topic.c; setColor(rc, CAT_COLOR[topic.c] || "c-paper");
+  $("#runTopic").innerHTML = rich(topic.t);
+  runEl.classList.remove("warn"); runEl.classList.toggle("think", !!withThink);
+  show("run"); wake(true);
+  if (withThink && S.think > 0) setPhase("think", S.think);
+  else {
+    T.total = S.speak * 1000; paint(T.total);
+    phaseEl.textContent = "Внимание"; setColor(phaseEl, "c-yellow"); setBubble("Готов?", "c-yellow");
+    $("#skipThink").hidden = true; $("#stopBtn").textContent = "Стоп";
+    stage.dataset.state = "think";
+    countdown(() => setPhase("speak", S.speak));
+  }
+}
+
+function finish(){
+  if (T.phase === "speak" && T.spoken === 0) T.spoken = T.total - Math.max(0, T.paused ? T.left : T.end - performance.now());
+  const spoken = Math.min(S.speak, Math.round((T.spoken || 0) / 1000));
+  stopTimer(); T.spoken = 0;
+  if (mode === "prep" && pending && topic && pending.t === topic.t){ pending = null; store.set("rr.pending", null); }
+  $("#doneBig").innerHTML = rich("Время!", false);
+  $("#doneTopic").innerHTML = rich(topic.t);
+  $("#stSpoke").textContent = fmt(spoken);
+  $("#stR").textContent = (topic.t.match(/[рР]/g) || []).length;
+  show("done");
+  restart($("#doneBurst"), "pop");
+  trillIn($("#doneBig"), 380, 0);
+}
+
+function goHome(){ drawId++; busy = false; clearLater(); stopTimer(); Music.stop(); renderHome(); show("home"); }
+
+/* ---------- события ---------- */
+document.querySelectorAll(".mode").forEach(b => b.addEventListener("click", () => startDraw(b.dataset.mode)));
+$("#pending").addEventListener("click", () => { if (pending) startDraw("prep", pending); });
+$("#tellNow").addEventListener("click", () => startRun(false));
+$("#reroll").addEventListener("click", () => startDraw(mode));
+$("#later").addEventListener("click", goHome);
+$("#skipThink").addEventListener("click", () => { if (T.phase === "think"){ goWord(); sfx.go(); setPhase("speak", S.speak); } });
+$("#pauseBtn").addEventListener("click", togglePause);
+$("#stopBtn").addEventListener("click", () => { if (T.phase === "speak") finish(); else goHome(); });
+$("#dNew").addEventListener("click", () => startDraw(mode || "imp"));
+$("#dAgain").addEventListener("click", () => startRun(mode === "imp"));
+$("#dHome").addEventListener("click", goHome);
+
+const soundBtn = $("#soundBtn");
+function paintSound(){ soundBtn.setAttribute("aria-pressed", S.sound); $("#sOn").hidden = !S.sound; $("#sOff").hidden = S.sound; }
+soundBtn.addEventListener("click", () => { S.sound = !S.sound; saveS(); paintSound(); if (S.sound) tone(880, .1, "sine", .12); else Music.stop(); });
+$("#homeBtn").addEventListener("click", () => { if (cur !== "home") goHome(); });
+if (!document.fullscreenEnabled) $("#fsBtn").hidden = true; /* на iPhone полноэкранного режима нет */
+$("#fsBtn").addEventListener("click", () => {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  } catch(e){}
+});
+
+const sheet = $("#sheet");
+function paintSeg(){
+  document.querySelectorAll(".seg").forEach(seg => {
+    const k = seg.dataset.key;
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(JSON.parse(b.dataset.v) === S[k])));
+  });
+}
+function openSheet(){ $("#cPrep").value = custom.prep; $("#cImp").value = custom.imp; paintSeg(); sheet.hidden = false; $("#sheetClose").focus(); }
+function closeSheet(){ sheet.hidden = true; renderHome(); }
+["#setBtn", "#sumSpeak", "#sumThink"].forEach(s => $(s).addEventListener("click", openSheet));
+$("#sheetClose").addEventListener("click", closeSheet);
+sheet.addEventListener("click", e => { if (e.target === sheet) closeSheet(); });
+document.querySelectorAll(".seg").forEach(seg => seg.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  S[seg.dataset.key] = JSON.parse(b.dataset.v); saveS(); paintSeg();
+}));
+let saveT = 0;
+["cPrep", "cImp"].forEach(id => $("#" + id).addEventListener("input", e => {
+  custom[id === "cPrep" ? "prep" : "imp"] = e.target.value;
+  clearTimeout(saveT); saveT = setTimeout(() => store.set("rr.custom", custom), 300);
+}));
+$("#reshuffle").addEventListener("click", e => {
+  used = {prep:[], imp:[]}; store.set("rr.used", used); renderHome();
+  const b = e.currentTarget; b.textContent = "Колоды перемешаны"; setTimeout(() => b.textContent = "Перемешать колоды заново", 1600);
+});
+
+/* клик мышью не оставляет фокус на кнопке, чтобы пробел и Enter работали как горячие клавиши */
+document.addEventListener("click", e => { const b = e.target.closest("button"); if (b && e.detail > 0) b.blur(); });
+addEventListener("keydown", e => {
+  if (!sheet.hidden){ if (e.key === "Escape") closeSheet(); return; }
+  if (e.key === "Escape"){ goHome(); return; }
+  if (e.target.closest && e.target.closest("button, textarea, input")) return;
+  if (e.key === " "){
+    e.preventDefault();
+    if (cur === "run" && T.phase) togglePause();
+    else if (cur === "draw" && mode === "prep" && !busy) startRun(false);
+    else if (cur === "done") startRun(mode === "imp");
+  } else if (e.key === "Enter"){
+    e.preventDefault(); startDraw(mode || "imp");
+  } else if (cur === "home" && e.key === "1") startDraw("prep");
+  else if (cur === "home" && e.key === "2") startDraw("imp");
+});
+
+paintSound(); renderHome(); show("home");
+})();
+</script>
+<script>if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
+</body>
+</html>
