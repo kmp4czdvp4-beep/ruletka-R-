@@ -790,7 +790,11 @@ const Music = (() => {
     const midi = d => root + 12 * Math.floor(d / L) + scale[((d % L) + L) % L];
     const f = d => mtof(midi(d));
     const END = t0 + 10;
-    const vol = a.createGain(); vol.gain.setValueAtTime(.0001, t0); vol.gain.linearRampToValueAtTime(1, t0 + .05); vol.gain.setValueAtTime(1, END - 1.6); vol.gain.linearRampToValueAtTime(.0001, END);
+    /* нарастание за 1,2 с: S-кривая по децибелам — мягкий старт, быстрый подъём в середине, без рывка в конце */
+    const SWELL = 1.2, swell = new Float32Array(64);
+    for (let i = 0; i < 64; i++){ const x = i / 63, s = x * x * (3 - 2 * x); swell[i] = Math.pow(10, (-32 + 32 * s) / 20); }
+    const vol = a.createGain(); vol.gain.value = swell[0];
+    vol.gain.setValueCurveAtTime(swell, t0, SWELL); vol.gain.setValueAtTime(1, END - 1.6); vol.gain.linearRampToValueAtTime(.0001, END);
     vol.connect(out);
     const bus = a.createGain(), wet = a.createGain(); wet.gain.value = (mood === "mystic" || pal === "bible") ? .55 : .32;
     bus.connect(vol); bus.connect(wet); wet.connect(reverb(a)).connect(vol);
